@@ -7,10 +7,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def final_position(x_ball_init=0, y_ball_init=0, z_ball_init=0, speed=10,
-    tilt=45, pan=0, x_final=2):
-    x_speed = speed*np.cos(tilt*np.pi/180)*np.cos(pan*np.pi/180)
-    y_speed = speed*np.sin(pan*np.pi/180)
-    z_speed = speed*np.sin(tilt*np.pi/180)
+    hang=45, vang=0, x_final=2):
+    x_speed = speed*np.cos(hang*np.pi/180)*np.cos(vang*np.pi/180)
+    y_speed = speed*np.sin(vang*np.pi/180)
+    z_speed = speed*np.sin(hang*np.pi/180)
 
     t_final = (x_final-x_ball_init)/x_speed
     y_final = y_ball_init + t_final*y_speed

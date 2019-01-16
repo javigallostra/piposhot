@@ -24,21 +24,20 @@ from ballmodel import *
 class GridWorld:
 
     def __init__(self, tot_row, tot_col):
-        self.action_space_size = 4
+        #The world is a matrix of size row x col
         self.world_row = tot_row
         self.world_col = tot_col
-        #The world is a matrix of size row x col x 2
-        #The first layer contains the obstacles
-        #The second layer contains the rewards
-        #self.world_matrix = np.zeros((tot_row, tot_col, 2))
-        self.transition_matrix = np.ones((self.action_space_size, self.action_space_size))/ self.action_space_size
-        #self.transition_array = np.ones(self.action_space_size) / self.action_space_size
         self.reward_matrix = np.zeros((tot_row, tot_col))
         self.state_matrix = np.zeros((tot_row, tot_col))
+        #The transition matrix stores the probabilities of performing a certain action
+        #when a command is given
+        self.action_space_size = 4
+        self.transition_matrix = np.eye(self.action_space_size)
+        #Begin at a random position
         self.position = [np.random.randint(tot_row), np.random.randint(tot_col)]
 
     def setTransitionMatrix(self, transition_matrix):
-        '''Set the reward matrix.
+        '''Set the transition matrix.
         The transition matrix here is intended as a matrix which has a line
         for each action and the element of the row are the probabilities to
         executes each action when a command is given.
@@ -68,56 +67,35 @@ class GridWorld:
 
     def setPosition(self, index_row=None, index_col=None):
         ''' Set the position of the robot in a specific state.
+        If no indeces are given, the new position is random.
         '''
         if(index_row is None or index_col is None): self.position = [np.random.randint(tot_row), np.random.randint(tot_col)]
         else: self.position = [index_row, index_col]
 
-    def render(self):
-        ''' Print the current world in the terminal.
-        O represents the robot position
-        - respresent empty states.
-        # represents obstacles
-        * represents terminal states
-        '''
-        graph = ""
-        for row in range(self.world_row):
-            row_string = ""
-            for col in range(self.world_col):
-                if(self.position == [row, col]): row_string += u" \u25CB " # u" \u25CC "
-                else:
-                    if(self.state_matrix[row, col] == 0): row_string += ' - '
-                    elif(self.state_matrix[row, col] == -1): row_string += ' # '
-                    elif(self.state_matrix[row, col] == +1): row_string += ' * '
-            row_string += '\n'
-            graph += row_string
-        print graph
-
     def reset(self, exploring_starts=False):
-        ''' Set the position of the robot in the bottom left corner.
+        ''' If exploring_starts is set to True, set the robot's position to a random one.
+        Else, set the position of the robot in the bottom left corner.
         It returns the first observation
         '''
         if exploring_starts:
             while(True):
-                # row = np.random.randint(0, self.world_row)
-                # col = np.random.randint(0, self.world_col)
-                tilt_init = np.random.randint(13,38+1)
-                pan_init = np.random.randint(0,19+1)
+                hang_init = np.random.randint(13,38+1)
+                vang_init = np.random.randint(0,19+1)
                 row, col = final_position(x_ball_init=0, y_ball_init=0, z_ball_init=0, speed=10,
-                            tilt=tilt_init, pan=pan_init,x_final=2,target_size=0.1)
+                            hang=hang_init, vang=vang_init,x_final=2,target_size=0.1)
                 if(self.state_matrix[row, col] == 0): break
             self.position = [row, col]
         else:
             self.position = [0, 0]
-            tilt_init = 13
-            pan_init = 0
-        #reward = self.reward_matrix[self.position[0], self.position[1]]
-        return self.position, tilt_init, pan_init
+            hang_init = 13
+            vang_init = 0
+        return self.position, hang_init, vang_init
 
-    def step(self, action, tilt_init, pan_init):
+    def step(self, action, hang_init, vang_init):
         ''' One step in the world.
         [observation, reward, done = env.step(action)]
         The robot moves one step in the world based on the action given.
-        The action can be 0=pan+1, 1=tilt+1, 2=pan-1, 3=tilt-1
+        The action can be 0=vang+1, 1=hang+1, 2=vang-1, 3=hang-1
         @return observation the position of the robot after the step
         @return reward the reward associated with the next state
         @return done True if the state is terminal
@@ -125,32 +103,25 @@ class GridWorld:
         if(action >= self.action_space_size):
             raise ValueError('The action is not included in the action space.')
 
-        #Based on the current action and the probability derived
-        #from the trasition model it chooses a new actio to perform
+        #Choose randomly a new action to perform
         action = np.random.choice(4, 1, p=self.transition_matrix[int(action),:])
-        #action = self.transition_model(action)
 
-        #Generating a new position based on the current position and action
-        # if(action == 0): new_position = [self.position[0]-1, self.position[1]]   #UP
-        # elif(action == 1): new_position = [self.position[0], self.position[1]+1] #RIGHT
-        # elif(action == 2): new_position = [self.position[0]+1, self.position[1]] #DOWN
-        # elif(action == 3): new_position = [self.position[0], self.position[1]-1] #LEFT
+        #Generate the new position based on the current position and action
         if(action == 0):
-            pan_init+=1
-            new_position = final_position(tilt=tilt_init, pan=pan_init)  #pan+1
+            vang_init+=1
+            new_position = final_position(hang=hang_init, vang=vang_init)  #vang+1
         elif(action == 1):
-            tilt_init+=1
-            new_position = final_position(tilt=tilt_init, pan=pan_init)  #tilt+1
+            hang_init+=1
+            new_position = final_position(hang=hang_init, vang=vang_init)  #hang+1
         elif(action == 2):
-            pan_init-=1
-            new_position = final_position(tilt=tilt_init, pan=pan_init)  #pan-1
+            vang_init-=1
+            new_position = final_position(hang=hang_init, vang=vang_init)  #vang-1
         elif(action == 3):
-            tilt_init-=1
-            new_position = final_position(tilt=tilt_init, pan=pan_init)  #tilt-1
+            hang_init-=1
+            new_position = final_position(hang=hang_init, vang=vang_init)  #hang-1
         else: raise ValueError('The action is not included in the action space.')
 
-        #Check if the new position is a valid position
-        #print(self.state_matrix)
+        #Update the position if the new one is valid
         if (new_position[0]>=0 and new_position[0]<self.world_row):
             if(new_position[1]>=0 and new_position[1]<self.world_col):
                 if(self.state_matrix[new_position[0], new_position[1]] != -1):
@@ -159,4 +130,4 @@ class GridWorld:
         reward = self.reward_matrix[self.position[0], self.position[1]]
         #Done is True if the state is a terminal state
         done = bool(self.state_matrix[self.position[0], self.position[1]])
-        return self.position, reward, tilt_init, pan_init, done
+        return self.position, reward, hang_init, vang_init, done
